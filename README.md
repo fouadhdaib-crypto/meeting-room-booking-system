@@ -1,66 +1,180 @@
-# Gather — meeting room workspace
+# Meeting Room Booking System
 
-A compact, responsive PHP/MySQL application with an integrated administration dashboard. The refreshed design uses a dark green sidebar, compact metrics, dense tables, room summaries, clear status labels, and mobile navigation. No frontend build process or external fonts/CDNs are required.
+A full-stack meeting room management application built with **PHP, MySQL, HTML, CSS, and JavaScript**. Employees can request meeting rooms, while administrators manage bookings, spaces, people, and access from a centralized dashboard.
 
-## Requirements and setup
+## Features
 
-- PHP 8.0+ with PDO MySQL; MySQL 8+ or MariaDB 10.4+; InnoDB tables.
-- Create a database named `meeting_room`, then import `database/meeting_room.sql` **only for a fresh installation**. This is the supplied sample dataset, including its existing accounts. Do not reimport it over an existing database.
-- Set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`, or edit `config/database.php`. Set `APP_TIMEZONE` if needed; the default is `Asia/Amman`.
-- Existing installations use the same tables and columns; no new schema is required. Ensure `room` and `booking` use InnoDB so transactions, locks and foreign keys work. The included fresh-install SQL specifies it explicitly.
-- Configure your web server document root to `public/`, keeping `app/`, `config/`, `database/`, `bin/`, and `tests/` outside the public web root.
-- For local development, from this directory run:
+- **Authentication:** registration, sign-in, sign-out, and session-based access.
+- **Admin dashboard:** live booking counts, pending requests, upcoming meetings, and room summaries.
+- **Full CRUD:** bookings, rooms, employees, departments, user accounts, and attendee assignments.
+- **Booking validation:** valid dates and times, room capacity checks, and overlapping booking detection.
+- **Booking status:** pending, confirmed, and cancelled.
+- **Record management:** search, status filters, pagination, and deletion confirmation.
+- **Responsive interface:** compact tables, mobile navigation, and clear status labels.
+- **Data protection:** password hashing, prepared SQL statements, CSRF tokens, and escaped output.
 
-```sh
-php -S 127.0.0.1:8080 -t public
-```
+## Technology Stack
 
-Open `http://127.0.0.1:8080/register.php`, create an account, and promote it from the terminal:
-
-```sh
-php bin/promote-admin.php your-email@example.com
-```
-
-Sign out and sign in again. Administrators land on `admin.php`; employees land on `dashboard.php`. The sample `ahmad` administrator has a placeholder password hash, so use the account creation/promotion flow rather than expecting a demo password.
-
-## Admin features
-
-Every section has list/read, details, create, edit and confirmed delete operations, backed by the database:
-
-| Section | Managed fields |
+| Layer | Technology |
 | --- | --- |
-| Bookings | Title, date, times, room, organizer, expected attendees, status |
-| Meeting rooms | Room name/number, capacity, location |
-| People | Employee name, linked user account, department |
-| Departments | Department name |
-| User accounts | Username, email, employee/admin role, password |
-| Attendee lists | Booking-to-employee assignments |
+| Interface | HTML5, CSS3, JavaScript |
+| Backend | PHP 8.0+ with object-oriented classes |
+| Database access | PDO with the MySQL driver |
+| Database | MySQL 8+ or MariaDB 10.4+, using InnoDB |
+| Local development | XAMPP / Apache |
 
-Create a user account and department before creating an employee. Create rooms and employees before booking. Add attendee assignments after the booking exists. Expected attendee count includes the organizer; individual attendance assignments are managed separately and may not exceed that count.
+## Database Diagram
 
-- Search, status filters, 15-row pagination, real database counts, upcoming meetings and today’s room booking counts.
-- Employee pages show live workspace data. Employees can submit pending requests with their own employee identity. Admin CRUD is available only through the admin workspace and is checked against the current database role.
-- Passwords are hashed. Leaving an edit password blank retains the existing password.
-- Booking times must form a valid same-day interval. Pending and confirmed bookings reserve a room; cancelled bookings do not. Adjacent intervals are allowed. Room locks serialize booking writes; overlapping intervals and capacity violations are rejected.
-- Deleting a booking also removes its attendee assignments. Referenced rooms, departments, employees and linked users cannot be deleted until related records are reassigned or deleted. Deleting an employee does not delete their user account.
-- Administrators cannot delete or demote their own account. Deleted user sessions are rejected on the next workspace request.
-- Forms use CSRF protection, prepared queries, HTML escaping, post/redirect/get and explicit server-rendered deletion confirmation. No write happens through a GET link.
+![Meeting room booking database diagram showing rooms, bookings, users, employees, departments, and booking attendees](docs/images/database-diagram.png)
+
+The diagram illustrates the main entities and their relationships. Use [`database/meeting_room.sql`](database/meeting_room.sql) as the authoritative schema: diagram labels such as `Password` and `Date` correspond to `password_hash` and `bookingDate` in the implementation.
+
+| Table | Purpose |
+| --- | --- |
+| `users` | Login credentials, email addresses, and roles |
+| `employee` | Employee profiles linked to user accounts and departments |
+| `department` | Organizational departments |
+| `room` | Room numbers, capacities, and locations |
+| `booking` | Meeting details, organizer, schedule, room, and status |
+| `booking_employee` | Employee assignments to bookings |
+
+A room can have many bookings. An employee belongs to a department and is linked to one user account; a user account may exist before an employee profile is created. The `booking_employee` table connects bookings and employees through a many-to-many relationship.
+
+## Project Structure
+
+| Path | Responsibility |
+| --- | --- |
+| `app/Admin.php` | Administration queries, CRUD operations, and booking validation |
+| `app/Auth.php` | Authentication and registration |
+| `app/Database.php` | PDO connection |
+| `app/Csrf.php` | CSRF token generation and validation |
+| `app/Workspace.php` | Workspace request handling |
+| `app/bootstrap.php` | Sessions, shared helpers, and class autoloading |
+| `config/database.php` | Database configuration |
+| `database/meeting_room.sql` | Fresh-install database schema and sample data |
+| `public/` | Web entry points and frontend assets |
+| `views/` | PHP/HTML templates |
+| `bin/promote-admin.php` | Command-line administrator setup |
+| `tests/` | Validation and database integration tests |
+| `docs/images/` | Documentation images |
+
+## Run Locally with XAMPP
+
+### 1. Place the project in `htdocs`
+
+Download or clone this repository into:
+
+```text
+C:/xampp/htdocs/meeting-room_2
+```
+
+Check that the dashboard file is located directly at:
+
+```text
+C:/xampp/htdocs/meeting-room_2/public/dashboard.php
+```
+
+If extracting a ZIP creates another project folder inside `meeting-room_2`, move its contents up one level.
+
+### 2. Start the services
+
+Start **Apache** and **MySQL** in the XAMPP Control Panel.
+
+### 3. Create and import the database
+
+1. Open [phpMyAdmin](http://localhost/phpmyadmin/).
+2. Create a database named `meeting_room`.
+3. Select it and import `database/meeting_room.sql`.
+
+Import this SQL file into a fresh database. Existing installations should retain their current data rather than reimport the sample dataset.
+
+### 4. Configure the connection
+
+The local defaults in `config/database.php` are:
+
+| Setting | Default |
+| --- | --- |
+| Host | `127.0.0.1` |
+| Port | `3306` |
+| Database | `meeting_room` |
+| Username | `root` |
+| Password | Empty string |
+
+Update these values to match your installation, or set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` as environment variables. The default application timezone is `Asia/Amman`; override it with `APP_TIMEZONE` if needed.
+
+### 5. Register and sign in
+
+Open:
+
+[http://localhost/meeting-room_2/public/register.php](http://localhost/meeting-room_2/public/register.php)
+
+Create your own account. Sample accounts containing placeholder password hashes do not have a usable demo password.
+
+### 6. Enable administrator access
+
+From Windows Command Prompt, run the following, replacing the email with your registered email:
+
+```bat
+cd C:\xampp\htdocs\meeting-room_2
+C:\xampp\php\php.exe bin\promote-admin.php your-email@example.com
+```
+
+Sign out and sign in again, then open:
+
+[http://localhost/meeting-room_2/public/admin.php](http://localhost/meeting-room_2/public/admin.php)
+
+## Typical Workflow
+
+1. Create departments and user accounts.
+2. Link employees to their accounts and departments.
+3. Add meeting rooms with their capacities and locations.
+4. Submit a booking request with the meeting date, time, and expected attendee count.
+5. Review and edit the booking in the admin dashboard.
+6. Manage individual attendees in the attendee lists section.
+
+Pending and confirmed bookings reserve their room. Cancelled bookings do not block the time slot. Back-to-back bookings are allowed, but overlapping bookings for the same room are rejected.
+
+## Permissions and Record Relationships
+
+| Action | Employee | Administrator |
+| --- | --- | --- |
+| View the team workspace | Yes | Yes |
+| Request a booking under their own employee profile | Yes | Yes, through the employee workspace |
+| Open the admin dashboard | No | Yes |
+| Create, edit, or delete managed records | No | Yes |
+| Manage user roles | No | Yes |
+
+Administrators cannot delete or demote their own account. Referenced rooms, employees, departments, and users must have their related records reassigned or removed before deletion. Deleting a booking also removes its attendee assignments.
 
 ## Validation
 
-The editing environment did not include PHP or MySQL, so PHP execution and database integration could not be run there. JavaScript syntax and isolated mobile-menu/submit-handler tests passed. Browser rendering could not be verified because this environment also lacks a browser executable. Run these checks on your PHP/MySQL environment before deployment:
+Run the schedule validation tests from the project directory:
 
-```sh
-find app public views bin tests -name '*.php' -exec php -l {} \;
-php tests/validation.php
+```bat
+C:\xampp\php\php.exe tests\validation.php
 ```
 
-The integration suite requires an **empty disposable database** whose name starts with `gather_test_`. It imports sample tables, exercises all six CRUD sections, validates search/filtering, capacity and overlap rejection, role restrictions, password retention and relationship protection. It intentionally leaves that disposable database in place for inspection.
+For integration tests, first create an **empty disposable database** named `gather_test_crud`. Then run:
 
-```sh
-# First create an empty database named gather_test_crud with your MySQL tools.
-TEST_DB_NAME=gather_test_crud php tests/integration.php
+```bat
+set TEST_DB_NAME=gather_test_crud
+C:\xampp\php\php.exe tests\integration.php
 ```
 
-For browser verification, sign in once as an admin and once as an employee. Confirm that create/edit/delete actions persist after refresh, expired CSRF tokens reject writes, employee access to `admin.php` returns 403, and narrow layouts allow navigation and horizontal table scrolling. This delivery is source code for your PHP host; it has not been deployed.
-# meeting-room-booking-system
+The integration suite imports sample data and exercises CRUD, permissions, password retention, search/filtering, room capacity, overlapping bookings, and relationship protection. It leaves the disposable database available for inspection.
+
+PHP and MySQL execution have not been verified in the source-preparation environment. Run these checks in your local environment before deploying.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| `Not Found` | Keep the project inside `C:/xampp/htdocs/` and match the URL to its folder name. |
+| Database connection error | Start MySQL, import the schema, and check `config/database.php`. |
+| Administrator access denied | Promote your registered account, then sign out and sign in again. |
+| Booking rejected | Check the time interval, room capacity, and existing bookings. |
+| Record cannot be deleted | Reassign or remove records that reference it first. |
+
+## Deployment
+
+For deployment, configure the web server document root to `public/`. Keep application code, database scripts, configuration, command-line utilities, and tests outside the public document root. Configure server credentials through environment variables and use HTTPS.
